@@ -1,0 +1,29 @@
+# Created by venv; see https://docs.python.org/3/library/venv.html
+# Ignore Visual Studio folders
+.vs/
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+
+# Python cache and virtual envs
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.sqlite
+.env/
+venv/
+.venv/
+
+# JetBrains/PyCharm
+.idea/
+
+# SQLite DBs and WAL files
+*.db
+*.db-wal
+*.db-shm
+
+# OS files
+.DS_Store
+Thumbs.db

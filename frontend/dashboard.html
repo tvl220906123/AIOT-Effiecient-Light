@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="manifest" href="manifest.json">
+  <title>Dashboard - SmartLight Planner</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      margin: 0;
+      padding: 0;
+      background: linear-gradient(135deg, #003c3c, #004d25);
+      color: white;
+    }
+    header {
+      background: #111;
+      padding: 20px;
+      text-align: center;
+    }
+    h1 {
+      margin: 0;
+      color: #4CAF50;
+    }
+    .container {
+      padding: 20px;
+    }
+    .task-form, .translation-form {
+      background: #222;
+      padding: 20px;
+      border-radius: 10px;
+      margin-bottom: 30px;
+    }
+    input, select, button {
+      width: 100%;
+      padding: 10px;
+      margin: 10px 0;
+      border: none;
+      border-radius: 8px;
+      font-size: 14px;
+    }
+    button {
+      background-color: #4CAF50;
+      color: white;
+      cursor: pointer;
+    }
+    button:hover {
+      background-color: #45a049;
+    }
+    .task-list {
+      margin-top: 20px;
+    }
+    .task {
+      background: #333;
+      margin-bottom: 10px;
+      padding: 10px;
+      border-radius: 8px;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>SmartLight Planner Dashboard</h1>
+  </header>
+  <div class="container">
+    <div class="task-form">
+      <h2>Add Task</h2>
+      <input type="text" id="taskName" placeholder="Task name" required>
+      <input type="datetime-local" id="taskDeadline" required>
+      <button onclick="addTask()">Add Task</button>
+    </div>
+
+    <div class="translation-form">
+      <h2>Translate Text</h2>
+      <input type="text" id="textToTranslate" placeholder="Enter text">
+      <select id="langSelect">
+        <option value="en">English</option>
+        <option value="vi">Vietnamese</option>
+        <option value="fr">French</option>
+        <option value="es">Spanish</option>
+      </select>
+      <button onclick="translateText()">Translate</button>
+      <p id="translatedResult"></p>
+    </div>
+
+    <div class="task-list">
+      <h2>Tasks</h2>
+      <div id="tasksContainer"></div>
+    </div>
+  </div>
+
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('serviceWorker.js')
+          .then(reg => console.log('Service Worker registered', reg))
+          .catch(err => console.error('Service Worker error', err));
+      });
+    }
+
+    async function addTask() {
+      const name = document.getElementById("taskName").value;
+      const deadline = document.getElementById("taskDeadline").value;
+      if (!name || !deadline) return alert("Please enter both name and deadline");
+
+      await fetch("http://localhost:8000/add-task", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name, deadline })
+      });
+
+      loadTasks();
+    }
+
+    async function loadTasks() {
+      const res = await fetch("http://localhost:8000/tasks");
+      const tasks = await res.json();
+      const container = document.getElementById("tasksContainer");
+      container.innerHTML = "";
+
+      for (const task of tasks) {
+        const response = await fetch("http://localhost:8000/predict-risk", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ name: task.name, deadline: task.deadline, created_at: new Date().toISOString() })
+        });
+        const riskData = await response.json();
+
+        const div = document.createElement("div");
+        div.className = "task";
+        div.innerHTML = `<strong>${riskData.task}</strong><br>
+                          Deadline: ${task.deadline}<br>
+                          Days left: ${riskData.days_left}<br>
+                          Risk: <span style='color:${riskData.risk_level === "HIGH" ? "red" : riskData.risk_level === "MEDIUM" ? "orange" : "lightgreen"}'>${riskData.risk_level}</span>`;
+        container.appendChild(div);
+      }
+    }
+
+    async function translateText() {
+      const text = document.getElementById("textToTranslate").value;
+      const dest_lang = document.getElementById("langSelect").value;
+
+      const res = await fetch("http://localhost:8000/translate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ text, dest_lang })
+      });
+
+      const data = await res.json();
+      document.getElementById("translatedResult").textContent = `Translated: ${data.translated}`;
+    }
+
+    loadTasks();
+  </script>
+</body>
+</html>
