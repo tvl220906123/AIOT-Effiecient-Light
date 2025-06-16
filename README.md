@@ -6,3 +6,15 @@ uvicorn main:app --reload
 
 # Open frontend
 Open frontend/dashboard.html in a browser
+## Tech Stack
+- FastAPI (Python)
+- HTML/CSS/JS frontend
+- SQLite (or your DB if different)
+
+## Installation
+1. Clone the repo
+2. Run backend:
+```bash
+cd backend
+uvicorn main:app --reload
+```
