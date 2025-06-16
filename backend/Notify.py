@@ -7,8 +7,8 @@ def send_daily_notification():
     today = datetime.today()
 
     for task in tasks:
-        deadline = datetime.strptime(task['deadline'], "%Y-%m-%d")
-        days_left = (deadline - today).days
+        deadline = datetime.fromisoformat(task['deadline'])
+        days_left = (deadline.date() - today.date()).days
 
         if 0 <= days_left <= 3:
             print(f"[ALERT] Task '{task['name']}' is due in {days_left} day(s) on {task['deadline']}")
