@@ -1,12 +1,37 @@
 from fastapi import FastAPI
 from pydantic import BaseModel
 from datetime import datetime
-from routes import translate
+from routes import translate, task
 from Notify import start_scheduler, send_daily_notification
 from routes.task_db import add_task, get_tasks
 from fastapi.responses import JSONResponse
 
+from fastapi.middleware.cors import CORSMiddleware
+
+from pydantic import BaseModel
+
+class TaskInput(BaseModel):
+    name: str
+    deadline: str
+    created_at: str
+
+class RiskResponse(BaseModel):
+    task: str
+    days_left: int
+    risk_level: str
+
 app = FastAPI()
+
+# 👇 Add this block
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # You can replace * with "http://localhost:5500" for safety
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+app.include_router(task.router)
 
 start_scheduler()
 
@@ -24,16 +49,14 @@ class RiskResponse(BaseModel):
     task: str
     days_left: int
     risk_level: str
+class TaskData(BaseModel):
+    name: str
+    deadline: str
 
 # Routes
 @app.post("/add-task")
-def create_task(task: AddTaskInput):
-    try:
-        datetime.fromisoformat(task.deadline)
-    except ValueError:
-        return JSONResponse(status_code=400, content={"error": "Invalid deadline format. Use ISO format: YYYY-MM-DDTHH:MM:SS"})
-    
-    add_task(task.name, task.deadline)
+def add_task_endpoint(data: TaskData):
+    add_task(data.name, data.deadline)
     return {"message": "Task added"}
 
 @app.get("/tasks")
@@ -43,8 +66,8 @@ def list_tasks():
 @app.post("/predict-risk", response_model=RiskResponse)
 def predict_risk(task: TaskInput):
     try:
-        deadline = datetime.fromisoformat(task.deadline)
-        created = datetime.fromisoformat(task.created_at)
+        deadline = datetime.fromisoformat(task.deadline).astimezone()
+        created = datetime.fromisoformat(task.created_at).astimezone()
     except ValueError:
         return JSONResponse(status_code=400, content={"error": "Invalid date format. Use ISO format: YYYY-MM-DDTHH:MM:SS"})
 
